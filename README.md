@@ -112,6 +112,8 @@ Port Mirroring → Source
 VM Settings → Network Adapter → Advanced Features
 Port Mirroring → Destination
 ```
+### Other Virtualization Platforms : Check Online 
+---
 Enable packet capture support: Powershell >> Run as Administratior 
 ```powershell
 Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddressSpoofing On
@@ -121,6 +123,3 @@ Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddre
 Check mirrored traffic on the watchserver:
 ```bash
 sudo tcpdump -i eth0
-```
-## Other Virtualization Platforms : Check Online 
----
