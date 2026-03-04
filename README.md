@@ -1,23 +1,16 @@
 # NIDPS Lab Network Configuration
 Internal network range:
-
 ```
 10.10.10.0/24
 ```
-
 ---
-
 # Metasploitable Configuration
-
 ### Change Adapter
 ```
 Settings → Network → Adapter Type → Legacy Network Adapter
 ```
-
 ### Configure Network
-
 Edit:
-
 ```bash
 sudo nano /etc/network/interfaces
 ```
@@ -28,9 +21,8 @@ iface eth0 inet static
     netmask 255.255.255.0
 ```
 Reboot Metasploitable:
-
 ```bash
-sudo service networking restart
+sudo reboot
 ```
 Verify:
 ```bash
@@ -90,7 +82,6 @@ Verify:
 ```bash
 ip a
 ```
-
 ---
 # Network Addressing
 | Machine | IP |
@@ -100,14 +91,11 @@ ip a
 | NIDPS Server | 10.10.10.12 |
 
 ---
-# Connectivity Test
+# Connectivity Test From Kali and watchserver
 Internal network:
 ```bash
 ping 10.10.10.10
 ping 10.10.10.12
-```
-Internet check:
-```bash
 ping 8.8.8.8
 ping google.com
 ```
@@ -119,23 +107,20 @@ To allow the sensor to inspect traffic, enable **Port Mirroring**.
 VM Settings → Network Adapter(dubble click) → Advanced Features
 Port Mirroring → Source
 ```
-### Destination (NIDPS Server)
+### Destination (watchserver)
 ```
 VM Settings → Network Adapter → Advanced Features
 Port Mirroring → Destination
 ```
-Enable packet capture support:
+Enable packet capture support: Powershell >> Run as Administratior 
 ```powershell
 Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddressSpoofing On
 ```
 ---
 # Verify Packet Capture
-Check mirrored traffic on the sensor:
+Check mirrored traffic on the watchserver:
 ```bash
 sudo tcpdump -i eth0
 ```
-# Other Virtualization Platforms : Check Online 
-
+## Other Virtualization Platforms : Check Online 
 ---
-
-This setup allows the NIDPS server to monitor all traffic between the attacker and the target machine.
