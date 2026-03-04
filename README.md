@@ -1,0 +1,383 @@
+# NIDPS Lab Network Configuration
+
+This document explains the network configuration used in the **NIDPS (Network Intrusion Detection and Prevention System) lab environment**.
+
+The lab contains three virtual machines used to simulate an attacker, victim, and monitoring system.
+
+---
+
+# Virtual Machines and Their Usage
+
+| VM | Purpose |
+|----|--------|
+| Kali Linux | Attacker system used to generate traffic and attacks |
+| Metasploitable | Vulnerable machine used as attack target |
+| NIDPS Server | Monitors traffic and runs Snort, Zeek, ELK stack |
+
+All machines communicate through an **internal network**, while the server maintains **internet connectivity** for updates and alert delivery.
+
+---
+
+# Metasploitable Network Configuration
+
+## Step 1: Change Network Adapter
+
+Before booting the VM, change the adapter type.
+
+```
+Settings → Network → Adapter Type → Legacy Network Adapter
+```
+
+Metasploitable works more reliably with the **Legacy Network Adapter**.
+
+---
+
+## Step 2: Edit Network Configuration File
+
+Open the network configuration file.
+
+```bash
+sudo nano /etc/network/interfaces
+```
+
+Configure the interface:
+
+```bash
+auto eth0
+iface eth0 inet static
+    address 10.10.10.10
+    netmask 255.255.255.0
+```
+
+Restart networking service.
+
+```bash
+sudo service networking restart
+```
+
+Verify the IP address.
+
+```bash
+ifconfig
+```
+
+---
+
+# Kali Linux Network Configuration
+
+Kali acts as the **attacker machine** and has two network interfaces.
+
+| Interface | Purpose |
+|-----------|--------|
+| eth0 | Internal attack network |
+| eth1 | Internet access (DHCP) |
+
+---
+
+## Edit Kali Network File
+
+Open the configuration file.
+
+```bash
+sudo nano /etc/network/interfaces
+```
+
+Example configuration:
+
+```bash
+auto eth0
+iface eth0 inet static
+    address 10.10.10.11
+    netmask 255.255.255.0
+
+auto eth1
+iface eth1 inet dhcp
+```
+
+Restart networking.
+
+```bash
+sudo systemctl restart networking
+```
+
+Verify configuration.
+
+```bash
+ip a
+```
+
+---
+
+# NIDPS Server Network Configuration
+
+The NIDPS server uses **Netplan** for network configuration.
+
+Network configuration files are located in:
+
+```
+/etc/netplan/
+```
+
+Check available files.
+
+```bash
+ls /etc/netplan/
+```
+
+Example file:
+
+```
+00-installer-config.yaml
+```
+
+Edit the file.
+
+```bash
+sudo nano /etc/netplan/<file-name>.yaml
+```
+
+Example configuration format:
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      addresses:
+        - 10.10.10.12/24
+      dhcp4: no
+
+    eth1:
+      dhcp4: yes
+```
+
+Apply the configuration.
+
+```bash
+sudo netplan apply
+```
+
+Verify network settings.
+
+```bash
+ip a
+```
+
+---
+
+# Network Addressing
+
+| Machine | IP Address |
+|--------|-----------|
+| Kali Linux | 10.10.10.11 |
+| Metasploitable | 10.10.10.10 |
+| NIDPS Server | 10.10.10.12 |
+
+Network Range
+
+```
+10.10.10.0/24
+```
+
+---
+
+# Connectivity Testing
+
+## Test Internal Network
+
+From Kali to Metasploitable.
+
+```bash
+ping 10.10.10.10
+```
+
+From Kali to NIDPS Server.
+
+```bash
+ping 10.10.10.12
+```
+
+---
+
+## Test Internet Connectivity
+
+Check internet access.
+
+```bash
+ping 8.8.8.8
+```
+
+Test DNS resolution.
+
+```bash
+ping google.com
+```
+
+---
+
+# Hyper-V Network Monitoring Configuration
+
+To allow the NIDPS server to inspect network traffic, **port mirroring and promiscuous mode must be enabled in Hyper-V**.
+
+This allows the sensor VM to capture packets from other virtual machines.
+
+---
+
+# Enable Port Mirroring in Hyper-V
+
+Port mirroring duplicates network packets from a **source VM** to a **destination VM**.
+
+---
+
+## Configure Source VM (Traffic Generator)
+
+Example: **Kali Linux or Metasploitable**
+
+1. Open **Hyper-V Manager**
+2. Right click the VM
+3. Select **Settings**
+4. Navigate to
+
+```
+Network Adapter → Advanced Features
+```
+
+5. Under **Port Mirroring**
+
+```
+Mirroring Mode → Source
+```
+
+Click **OK**.
+
+This means traffic from this VM will be mirrored.
+
+---
+
+## Configure Destination VM (Sensor)
+
+Example: **NIDPS Server**
+
+1. Open **Hyper-V Manager**
+2. Right click the **Sensor VM**
+3. Click **Settings**
+4. Navigate to
+
+```
+Network Adapter → Advanced Features
+```
+
+5. Under **Port Mirroring**
+
+```
+Mirroring Mode → Destination
+```
+
+Click **OK**.
+
+The sensor VM will now receive mirrored traffic.
+
+---
+
+# Enable Promiscuous Mode
+
+Promiscuous mode allows a network interface to capture **all packets on the network**, not just those addressed to it.
+
+In Hyper-V this is enabled using **MAC Address Spoofing**.
+
+---
+
+## Enable Using PowerShell
+
+Open **PowerShell as Administrator**.
+
+Check network adapter.
+
+```powershell
+Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter
+```
+
+Enable MAC address spoofing.
+
+```powershell
+Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddressSpoofing On
+```
+
+This allows the sensor to capture mirrored packets.
+
+---
+
+# Verify Packet Capture
+
+Check whether mirrored traffic is visible.
+
+```bash
+sudo tcpdump -i eth0
+```
+
+or
+
+```bash
+sudo snort -i eth0
+```
+
+If mirroring is working correctly, you should see traffic generated by other virtual machines.
+
+---
+
+# Using Other Virtualization Platforms
+
+If you are not using Hyper-V, configure monitoring features according to your platform.
+
+---
+
+## VMware
+
+Enable the following settings:
+
+```
+Promiscuous Mode → Accept
+MAC Address Changes → Accept
+Forged Transmits → Accept
+```
+
+Location:
+
+```
+Virtual Switch → Security Settings
+```
+
+---
+
+## VirtualBox
+
+Enable promiscuous mode.
+
+```
+Network → Adapter → Promiscuous Mode → Allow All
+```
+
+---
+
+## KVM / Proxmox
+
+Use a bridge interface and enable promiscuous mode.
+
+```bash
+ip link set eth0 promisc on
+```
+
+---
+
+# Summary
+
+The NIDPS lab network is divided into two segments:
+
+**Internal Attack Network**
+- Used for attack simulation between Kali and Metasploitable.
+
+**Internet Network**
+- Used for updates, alert delivery, and external connectivity.
+
+Using **port mirroring and promiscuous mode**, the NIDPS server can inspect and analyze all network traffic in the environment.
