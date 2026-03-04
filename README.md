@@ -116,7 +116,7 @@ Port Mirroring → Destination
 ---
 Enable packet capture support: Powershell >> Run as Administratior 
 ```powershell
-Get-VM -Name "Sensor-VM" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddressSpoofing On
+Get-VM -Name "Server Name" | Get-VMNetworkAdapter | Set-VMNetworkAdapter -MacAddressSpoofing On
 ```
 ---
 # Verify Packet Capture
